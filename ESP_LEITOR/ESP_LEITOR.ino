@@ -26,7 +26,8 @@ double medeDist(int trig, int echo) {
 }
 
 void setup() {
-  Serial.begin (9600); 
+  Serial.begin (9600);
+  Serial1.begin(9600,SERIAL_8N1,10,9); 
   pinMode(trigd, OUTPUT); 
   pinMode(echod, INPUT);
   pinMode(trige, OUTPUT); 
@@ -41,7 +42,7 @@ void loop() {
   double distd=medeDist(trigd,echod);
   double diste=medeDist(trige,echoe);
   double distf=medeDist(trigf,echof);
-  Serial.print("distancia: ");Serial.print(distd);Serial.print(", ");Serial.print(diste);Serial.print(", ");Serial.println(distf);
+  Serial1.print("distancia: ");Serial1.print(distd);Serial1.print(", ");Serial1.print(diste);Serial1.print(", ");Serial1.println(distf);
   ultMed=millis();
 }
 }
