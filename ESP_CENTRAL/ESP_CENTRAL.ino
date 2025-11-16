@@ -36,7 +36,8 @@ void setup() {
     String json = "{";
     json += "\"distD\":" + String(aux1, 2) + ",";
     json += "\"distE\":" + String(aux2, 2) + ",";
-    json += "\"distF\":" + String(aux3, 2);
+    json += "\"distF\":" + String(aux3, 2) + ",";
+    json += "\"modo\":" + String(mode);
     json += "}";
     server.send(200, "application/json", json);
   });
@@ -104,8 +105,11 @@ static unsigned long tD = 0;
     digitalWrite(motore, LOW); // desligar se > 1m
     estadoMotorE = false;
   }
-  if(digitalRead(botao)==HIGH){
-    mode=(mode==interior?exterior:interior);
-    distanciaSeguranca=(mode==interior?1.00f:2.00f);
+  if(analogRead(botao)>=1000){
+    mode=interior;
+    distanciaSeguranca=1.00f;
+  }else{
+    mode=exterior;
+    distanciaSeguranca=2.00f;
   }
 }

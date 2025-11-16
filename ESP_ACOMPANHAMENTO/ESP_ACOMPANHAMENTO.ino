@@ -55,37 +55,47 @@ void loop() {
       String payload = http.getString();
 
       float distD = 5.0, distE = 5.0, distF = 5.0;
-      int p;
+      int modo = 0;
+      int p, p2;
+      String s;
 
       p = payload.indexOf("distD\":");
       if (p >= 0) {
-        int p2 = payload.indexOf(',', p);
-        String s = payload.substring(p + 7, p2);
+        p2 = payload.indexOf(',', p);
+        s = payload.substring(p + 7, p2);
         distD = s.toFloat();
       }
 
       p = payload.indexOf("distE\":");
       if (p >= 0) {
-        int p2 = payload.indexOf(',', p);
-        String s = payload.substring(p + 7, p2);
+        p2 = payload.indexOf(',', p);
+        s = payload.substring(p + 7, p2);
         distE = s.toFloat();
       }
 
       p = payload.indexOf("distF\":");
       if (p >= 0) {
-        int p2 = payload.indexOf('}', p);
-        String s = payload.substring(p + 7, p2);
+        p2 = payload.indexOf('}', p);
+        s = payload.substring(p + 7, p2);
         distF = s.toFloat();
       }
-
+      p = payload.indexOf("modo\":");
+      if (p >= 0) {
+        p2 = payload.indexOf('}', p);
+        s = payload.substring(p + 6, p2);
+        s.trim();
+        modo = s.toInt();  // 0 = interior, 1 = exterior
+      }
+      const char* modoStr = (modo == 0 ? "Interior" : "Exterior");
       // Imprime no Monitor Serial
-      Serial.printf("Direita: %.2fm   Esquerda: %.2fm   Frente: %.2fm\n",distD, distE, distF);
+      Serial.printf("Direita: %.2fm   Esquerda: %.2fm   Frente: %.2fm   Modo: %s\n",distD, distE, distF,modoStr);
 
       display.clearDisplay();
       display.setCursor(0, 0);
-      display.print("Direita: "); display.print(distD, 2); display.println(" m");
+      display.print("Direita : "); display.print(distD, 2); display.println(" m");
       display.print("Esquerda: "); display.print(distE, 2); display.println(" m");
-      display.print("Frente : "); display.print(distF, 2); display.println(" m");
+      display.print("Frente  : "); display.print(distF, 2); display.println(" m");
+      display.print("Modo    : "); display.println(modoStr);
       display.display();
     }
     else {
