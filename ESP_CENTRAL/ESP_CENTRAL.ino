@@ -7,7 +7,11 @@ enum modooperacao{
   interior,
   exterior
 }mode;
+
 double distanciaSeguranca=1.00f;
+bool quedaDetectada = false; 
+int numPassos = 0;
+double temperatura = 0.0;
 
 const char* ssid     = "NAVAPA";
 const char* password = "AfonsoJose";
@@ -112,11 +116,14 @@ void handleRoot() {
 } 
 void handleDists(){
   String json = "{";
-    json += "\"distD\":" + String(aux1, 2) + ",";
-    json += "\"distE\":" + String(aux2, 2) + ",";
-    json += "\"distF\":" + String(aux3, 2)+ ",";
-    json += "\"modo\":" + String(mode);
-    json += "}";
+  json += "\"distD\":" + String(aux1, 2) + ",";
+  json += "\"distE\":" + String(aux2, 2) + ",";
+  json += "\"distF\":" + String(aux3, 2) + ",";
+  json += "\"passos\":" + String(numPassos) + ",";
+  json += "\"temperatura\":" + String(temperatura, 2) + ",";
+  json += "\"modo\":" + String(mode) + ",";
+  json += "\"queda\":" + String(quedaDetectada ? "true" : "false");
+  json += "}";
   server.send(200, "application/json", json);
 }
 void setup() {
@@ -124,7 +131,7 @@ void setup() {
   Serial1.begin(9600,SERIAL_8N1,21,20);
   pinMode(motore,OUTPUT);
   pinMode(motord,OUTPUT);
-  pinMode(botao,INPUT);
+  pinMode(botao,INPUT_PULLUP);
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid, password);
   Serial.println("AP ativo. SSID: " + String(ssid));
@@ -138,69 +145,82 @@ void setup() {
 
 void loop() {
   server.handleClient();
-if (Serial1.available()>0) {  
-String s = Serial1.readStringUntil('\n');
-Serial.println(s);
-String distd=s.substring(10,15);
-aux1=distd.toDouble();
-String diste=s.substring(16,21);
-aux2=diste.toDouble();
-String distf = s.substring(22);
-aux3= distf.toDouble();
-if(aux1<=distanciaSeguranca){
-  if(mode==interior){proximoPulsoD=(aux1)*450+50;}
-  else proximoPulsoD=(aux1)/2.00f*450+50;
-  if(aux3<=distanciaSeguranca){
-    if(mode==interior)proximoPulsoD=(proximoPulsoD*(aux3)>50)?proximoPulsoD*(aux3):50;
-    else proximoPulsoD=(proximoPulsoD*(aux3)/2.00f>50)?proximoPulsoD*(aux3)/2.00f:50;
-  }
-} 
-if(aux2<=distanciaSeguranca){
-  if(mode==interior)proximoPulsoE=(aux2)*450+50;
-  else proximoPulsoE=(aux2)/2.00f*450+50;
-  if(aux3<=distanciaSeguranca){
-    if(mode==interior)proximoPulsoE=(proximoPulsoE*(aux3)>50)?proximoPulsoE*(aux3):50;
-    else proximoPulsoE=(proximoPulsoE*(aux3)/2.00f>50)?proximoPulsoE*(aux3)/2.00f:50;
-  }
-}
-if (aux1>distanciaSeguranca&&aux3<=distanciaSeguranca){
-  if(mode==interior)proximoPulsoD=(aux3)*450+50;
-  else proximoPulsoD=(aux3)/2.00f*450+50;
-}
-if (aux2>distanciaSeguranca&&aux3<=distanciaSeguranca){
-  if(mode==interior)proximoPulsoE=(aux3)*450+50;
-  else proximoPulsoE=(aux3)/2.00f*450+50;
-}
-}
-static unsigned long tD = 0;
-  if (aux1 <= distanciaSeguranca||aux3<=distanciaSeguranca) {
-    if (millis() - tD >= proximoPulsoD) {
-      estadoMotorD = !estadoMotorD;
-      digitalWrite(motord, estadoMotorD);
-      tD = millis();
-    }
-  } else {
-    digitalWrite(motord, LOW); // desligar se > 1m
-    estadoMotorD = false;
-  }
+  if (Serial1.available()>0) {  
+    String s = Serial1.readStringUntil('\n');
 
-  // vibração do motor esquerdo
-  static unsigned long tE = 0;
-  if (aux2 <= distanciaSeguranca||aux3<=distanciaSeguranca) {
-    if (millis() - tE >= proximoPulsoE) {
-      estadoMotorE = !estadoMotorE;
-      digitalWrite(motore, estadoMotorE);
-      tE = millis();
+    if (s.equalsIgnoreCase("QUEDA")) {
+      quedaDetectada = true;
+
+      digitalWrite(motord, LOW);
+      digitalWrite(motore, LOW);
+      estadoMotorD = false;
+      estadoMotorE = false;
+
+      Serial.println("** QUEDA DETETADA! **");
+
+      return;
     }
-  } else {
-    digitalWrite(motore, LOW); // desligar se > 1m
-    estadoMotorE = false;
+
+    Serial.println(s);
+    String distd=s.substring(10,15);
+    aux1=distd.toDouble();
+    String diste=s.substring(16,21);
+    aux2=diste.toDouble();
+    String distf = s.substring(22);
+    aux3= distf.toDouble();
+    if(aux1<=distanciaSeguranca){
+      if(mode==interior){proximoPulsoD=(aux1)*450+50;}
+      else proximoPulsoD=(aux1)/2.00f*450+50;
+      if(aux3<=distanciaSeguranca){
+        if(mode==interior)proximoPulsoD=(proximoPulsoD*(aux3)>50)?proximoPulsoD*(aux3):50;
+        else proximoPulsoD=(proximoPulsoD*(aux3)/2.00f>50)?proximoPulsoD*(aux3)/2.00f:50;
+      }
+    } 
+    if(aux2<=distanciaSeguranca){
+      if(mode==interior)proximoPulsoE=(aux2)*450+50;
+      else proximoPulsoE=(aux2)/2.00f*450+50;
+      if(aux3<=distanciaSeguranca){
+        if(mode==interior)proximoPulsoE=(proximoPulsoE*(aux3)>50)?proximoPulsoE*(aux3):50;
+        else proximoPulsoE=(proximoPulsoE*(aux3)/2.00f>50)?proximoPulsoE*(aux3)/2.00f:50;
+      }
+    }
+    if (aux1>distanciaSeguranca&&aux3<=distanciaSeguranca){
+      if(mode==interior)proximoPulsoD=(aux3)*450+50;
+      else proximoPulsoD=(aux3)/2.00f*450+50;
+    }
+    if (aux2>distanciaSeguranca&&aux3<=distanciaSeguranca){
+      if(mode==interior)proximoPulsoE=(aux3)*450+50;
+      else proximoPulsoE=(aux3)/2.00f*450+50;
+    }
   }
-  if(analogRead(botao)>=1000){
-    mode=interior;
-    distanciaSeguranca=1.00f;
-  }else{
-    mode=exterior;
-    distanciaSeguranca=2.00f;
-  }
+  static unsigned long tD = 0;
+    if (aux1 <= distanciaSeguranca||aux3<=distanciaSeguranca) {
+      if (millis() - tD >= proximoPulsoD) {
+        estadoMotorD = !estadoMotorD;
+        digitalWrite(motord, estadoMotorD);
+        tD = millis();
+      }
+    } else {
+      digitalWrite(motord, LOW); // desligar se > 1m
+      estadoMotorD = false;
+    }
+
+  static unsigned long tE = 0;
+    if (aux2 <= distanciaSeguranca||aux3<=distanciaSeguranca) {
+      if (millis() - tE >= proximoPulsoE) {
+        estadoMotorE = !estadoMotorE;
+        digitalWrite(motore, estadoMotorE);
+        tE = millis();
+      }
+    } else {
+      digitalWrite(motore, LOW); 
+      estadoMotorE = false;
+    }
+    if(digitalRead(botao)==HIGH){
+      mode=interior;
+      distanciaSeguranca=1.00f;
+    }else{
+      mode=exterior;
+      distanciaSeguranca=2.00f;
+    }
 }
