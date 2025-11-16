@@ -20,6 +20,105 @@ bool estadoMotorD = false;
 bool estadoMotorE = false;
 double aux1=5.00,aux2=5.00,aux3=5.00;
 
+const char htmlPage[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Visão Tipo Sonar</title>
+<style>
+  body { background:#111; color:#0f0; text-align:center; }
+  canvas { background:#222; margin-top:20px; }
+</style>
+</head>
+<body>
+
+<h1>Visão Tipo Sonar</h1>
+<canvas id="radar"></canvas>
+
+<script>
+  const canvas = document.getElementById("radar");
+  const ctx = canvas.getContext("2d");
+
+  function ajustaCanvas() {
+    const w = Math.min(window.innerWidth * 0.9, 800);
+    const h = w * 0.75;
+    canvas.width  = w;
+    canvas.height = h;
+  }
+  ajustaCanvas();
+  window.addEventListener("resize", ajustaCanvas);
+
+  function desenha(distE, distF, distD) {
+    const cx = canvas.width / 2;
+    const cy = canvas.height - 10;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const CENTRO = Math.PI * 1.5;
+    const centrais = [
+      CENTRO - 0.5,  // esquerda
+      CENTRO,        // frente
+      CENTRO + 0.5   // direita
+    ];
+
+    const abertura = 0.5; // ~30º
+    const maxDist = 2;
+    const dists = [distE, distF, distD];
+
+    for (let i = 0; i < 3; i++) {
+      const cen = centrais[i];
+      const a1 = cen - abertura / 2;
+      const a2 = cen + abertura / 2;
+
+      const raio = (Math.min(dists[i], maxDist) / maxDist) * (canvas.height - 20);
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, canvas.height - 20, a1, a2);
+      ctx.closePath();
+      ctx.fillStyle = "#800";
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, raio, a1, a2);
+      ctx.closePath();
+      ctx.fillStyle = "#0f0";
+      ctx.fill();
+    }
+  }
+
+  function atualiza() {
+    fetch('/distances')
+      .then(resp => resp.json())
+      .then(data => {
+        desenha(data.distE, data.distF, data.distD);
+      })
+      .catch(err => console.error("Erro no fetch:", err));
+  }
+
+  atualiza();
+  setInterval(atualiza, 500);
+</script>
+
+</body>
+</html>
+)rawliteral"; 
+
+void handleRoot() { 
+  String page = htmlPage; 
+  server.send(200, "text/html", page); 
+} 
+void handleDists(){
+  String json = "{";
+    json += "\"distD\":" + String(aux1, 2) + ",";
+    json += "\"distE\":" + String(aux2, 2) + ",";
+    json += "\"distF\":" + String(aux3, 2)+ ",";
+    json += "\"modo\":" + String(mode);
+    json += "}";
+  server.send(200, "application/json", json);
+}
 void setup() {
   Serial.begin(9600);
   Serial1.begin(9600,SERIAL_8N1,21,20);
@@ -31,16 +130,8 @@ void setup() {
   Serial.println("AP ativo. SSID: " + String(ssid));
   Serial.print("IP do AP: ");
   Serial.println(WiFi.softAPIP());
-  server.on("/distances", HTTP_GET, []() {
-    // constroi JSON simples
-    String json = "{";
-    json += "\"distD\":" + String(aux1, 2) + ",";
-    json += "\"distE\":" + String(aux2, 2) + ",";
-    json += "\"distF\":" + String(aux3, 2) + ",";
-    json += "\"modo\":" + String(mode);
-    json += "}";
-    server.send(200, "application/json", json);
-  });
+  server.on("/", handleRoot);
+  server.on("/distances", handleDists);
   server.begin();
   mode=interior;
 }
