@@ -2,7 +2,9 @@
 #include <WebServer.h>
 #define motord 3
 #define motore 5
-#define botao 4
+#define botaoi 18
+#define botaoe 19
+
 enum modooperacao{
   interior,
   exterior
@@ -33,12 +35,73 @@ const char htmlPage[] PROGMEM = R"rawliteral(
 <style>
   body { background:#111; color:#0f0; text-align:center; }
   canvas { background:#222; margin-top:20px; }
+  @keyframes piscar {
+  0%   { background-color: #800; }
+  50%  { background-color: #f00; }
+  100% { background-color: #800; }
+}
 </style>
 </head>
 <body>
 
 <h1>Visão Tipo Sonar</h1>
+
+<div id="alertaQueda" style="
+    display:none;
+    font-size: 2em;
+    font-weight: bold;
+    color: white;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 10px;
+    animation: piscar 0.8s infinite;
+">
+⚠ O USUÁRIO CAIU!
+</div>
+
 <canvas id="radar"></canvas>
+
+<!-- PAINEL DE INFORMAÇÃO -->
+<div id="infoPanel" style="
+    margin-top: 20px;
+    color: #0f0;
+    font-size: 1.3em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+">
+
+  <div id="distancias" style="
+      width: 90%;
+      display: flex;
+      justify-content: space-between;
+      font-size: 1.4em;
+      padding: 10px;
+      border: 1px solid #0f0;
+      border-radius: 10px;
+  ">
+      <div>E: <span id="dE">0</span> m</div>
+      <div>F: <span id="dF">0</span> m</div>
+      <div>D: <span id="dD">0</span> m</div>
+  </div>
+
+  <div id="extraInfo" style="
+      width: 90%;
+      display: flex;
+      justify-content: space-between;
+      font-size: 1.2em;
+      padding: 10px;
+      border: 1px solid #0f0;
+      border-radius: 10px;
+  ">
+      <div>Passos: <span id="passos">0</span></div>
+      <div>Temp: <span id="temp">0</span> °C</div>
+      <div>Modo: <span id="modo">?</span></div>
+  </div>
+
+</div>
+
 
 <script>
   const canvas = document.getElementById("radar");
@@ -94,16 +157,34 @@ const char htmlPage[] PROGMEM = R"rawliteral(
   }
 
   function atualiza() {
-    fetch('/distances')
-      .then(resp => resp.json())
-      .then(data => {
-        desenha(data.distE, data.distF, data.distD);
-      })
-      .catch(err => console.error("Erro no fetch:", err));
-  }
+  fetch('/distances?' + Date.now())  // evita cache
+    .then(resp => resp.json())
+    .then(data => {
+
+      // Atualiza o radar
+      desenha(data.distE, data.distF, data.distD);
+
+      // Atualiza alerta de queda
+      const alerta = document.getElementById("alertaQueda");
+      alerta.style.display = data.queda ? "block" : "none";
+
+      // Atualiza valores no painel
+      document.getElementById("dD").innerText = data.distD.toFixed(2);
+      document.getElementById("dE").innerText = data.distE.toFixed(2);
+      document.getElementById("dF").innerText = data.distF.toFixed(2);
+
+      document.getElementById("passos").innerText = data.passos;
+      document.getElementById("temp").innerText = data.temperatura.toFixed(2);
+
+      document.getElementById("modo").innerText =
+          data.modo === 0 ? "Interior" : "Exterior";
+    })
+    .catch(err => console.error("Erro no fetch:", err));
+}
+
 
   atualiza();
-  setInterval(atualiza, 500);
+  setInterval(atualiza, 200);
 </script>
 
 </body>
@@ -129,9 +210,12 @@ void handleDists(){
 void setup() {
   Serial.begin(9600);
   Serial1.begin(9600,SERIAL_8N1,21,20);
+  
   pinMode(motore,OUTPUT);
   pinMode(motord,OUTPUT);
-  pinMode(botao,INPUT_PULLUP);
+  pinMode(botaoe,INPUT_PULLUP);
+  pinMode(botaoi,INPUT_PULLUP);
+
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid, password);
   Serial.println("AP ativo. SSID: " + String(ssid));
@@ -160,14 +244,14 @@ void loop() {
 
       return;
     }
-
     Serial.println(s);
     String distd=s.substring(10,15);
     aux1=distd.toDouble();
     String diste=s.substring(16,21);
     aux2=diste.toDouble();
-    String distf = s.substring(22);
+    String distf = s.substring(22,27);
     aux3= distf.toDouble();
+    String passos= s.substring(28,)
     if(aux1<=distanciaSeguranca){
       if(mode==interior){proximoPulsoD=(aux1)*450+50;}
       else proximoPulsoD=(aux1)/2.00f*450+50;
@@ -216,10 +300,11 @@ void loop() {
       digitalWrite(motore, LOW); 
       estadoMotorE = false;
     }
-    if(digitalRead(botao)==HIGH){
+    if(digitalRead(botaoi)==LOW){
       mode=interior;
       distanciaSeguranca=1.00f;
-    }else{
+    }
+    if(digitalRead(botaoe)==LOW){
       mode=exterior;
       distanciaSeguranca=2.00f;
     }

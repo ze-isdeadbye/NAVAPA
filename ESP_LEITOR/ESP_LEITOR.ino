@@ -39,9 +39,9 @@ double medeDist(int trig, int echo) {
 }
 
 void setup() {
-  Serial1.begin(9600,SERIAL_8N1,21,20); 
-  Serial.begin(9600);
-  while (!Serial) { } 
+  Serial1.begin(9600,SERIAL_8N1,21,1); 
+  //Serial.begin(9600);
+  while (!Serial1) { } 
 
   pinMode(RESET_BUTTON_PIN, INPUT_PULLDOWN);
   pinMode(trigd, OUTPUT); 
@@ -75,23 +75,21 @@ void setup() {
 
 void loop() {
   if(BMI160.getIntFreefallStatus()){
-    Serial.print("foi detetada uma queda!!!!!!!!!!");
+    //Serial.print("foi detetada uma queda!!!!!!!!!!");
     Serial1.println("QUEDA");
     while(1){};
   }
   if(digitalRead(RESET_BUTTON_PIN) == HIGH) {
     BMI160.resetStepCount();
-    Serial.println("Counter reset!");
-    delay(300); // simple debounce delay
+    //Serial.println("Counter reset!");
   }
-  if(millis()-ultMed>=300){
+  if(millis()-ultMed>=200){
   uint16_t currentSteps = BMI160.getStepCount();
   int16_t rawTemp=BMI160.readTemperature();
   float tempC = 23.0 + ((float)rawTemp / 512.0); 
   double distd=medeDist(trigd,echod);
   double diste=medeDist(trige,echoe);
   double distf=medeDist(trigf,echof);
-  Serial.print("distancia: ");Serial.print(distd);Serial.print(", ");Serial.print(diste);Serial.print(", ");Serial.print(distf);Serial.print(", ");Serial.print(currentSteps);Serial.print(", ");Serial.println(tempC);
   Serial1.print("distancia: ");Serial1.print(distd);Serial1.print(", ");Serial1.print(diste);Serial1.print(", ");Serial1.print(distf);Serial1.print(", ");Serial1.print(currentSteps);Serial1.print(", ");Serial1.println(tempC);
   ultMed=millis();
 }
