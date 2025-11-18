@@ -1,27 +1,32 @@
-#include <WiFi.h>
+/*#include <WiFi.h>
 #include <HTTPClient.h>
-#include <Wire.h>
+#include <Wire.h>*/
+#include <SPI.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include <Adafruit_ST7735.h>
+#include <LiquidCrystal.h>
 
-// Credenciais do AP criado pelo recetor
+#define cs   4 
+#define dc   3 
+#define rst  2
+#define mosi 7
+#define sck 6
+
+Adafruit_ST7735 tft = Adafruit_ST7735(cs, dc,mosi , sck, rst);
+
+LiquidCrystal lcd(5, 8, 23, 22, 21, 20);
+
 const char* ssid     = "NAVAPA";
 const char* password = "AfonsoJose";
 
 // Endereço do endpoint
 const char* serverURL = "http://192.168.4.1/distances";
 
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET    -1
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-
 unsigned long int ultimamed=0;
 void setup() {
   Serial.begin(9600);
   delay(100);
 
-  // Liga-te ao Wi-Fi
   Serial.printf("A ligar ao SSID “%s” …\n", ssid);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -32,17 +37,17 @@ void setup() {
   Serial.print("IP local: ");
   Serial.println(WiFi.localIP());
 
-  // Inicializa display OLED
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println("Falha no SSD1306");
-    for (;;);
-  }
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0, 0);
-  display.println("A iniciar...");
-  display.display();
+  lcd.begin(16, 2);
+  lcd.print("LCD + TFT OK!");
+
+  tft.initR(INITR_GREENTAB);
+  tft.fillScreen(ST77XX_BLACK);
+
+  tft.setTextColor(ST77XX_GREEN);
+  tft.setTextSize(2);
+  tft.setCursor(10, 10);
+  tft.println("ESP32-C6");
+  tft.println("ST7735 OK!");
 }
 
 void loop() {
@@ -90,13 +95,6 @@ void loop() {
       // Imprime no Monitor Serial
       Serial.printf("Direita: %.2fm   Esquerda: %.2fm   Frente: %.2fm   Modo: %s\n",distD, distE, distF,modoStr);
 
-      display.clearDisplay();
-      display.setCursor(0, 0);
-      display.print("Direita : "); display.print(distD, 2); display.println(" m");
-      display.print("Esquerda: "); display.print(distE, 2); display.println(" m");
-      display.print("Frente  : "); display.print(distF, 2); display.println(" m");
-      display.print("Modo    : "); display.println(modoStr);
-      display.display();
     }
     else {
       Serial.printf("Erro HTTP: %d\n", httpCode);
