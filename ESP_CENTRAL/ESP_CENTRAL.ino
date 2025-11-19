@@ -2,8 +2,8 @@
 #include <WebServer.h>
 #define motord 3
 #define motore 5
-#define botaoi 18
-#define botaoe 19
+#define botaoInterior 18
+#define botaoExterior 19
 
 enum modooperacao{
   interior,
@@ -24,7 +24,8 @@ unsigned long proximoPulsoD = 0;
 unsigned long proximoPulsoE = 0;
 bool estadoMotorD = false;
 bool estadoMotorE = false;
-double aux1=5.00,aux2=5.00,aux3=5.00;
+double DIR=5.00,ESQ=5.00,FREN=5.00; 
+
 
 const char htmlPage[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -197,9 +198,9 @@ void handleRoot() {
 } 
 void handleDists(){
   String json = "{";
-  json += "\"distD\":" + String(aux1, 2) + ",";
-  json += "\"distE\":" + String(aux2, 2) + ",";
-  json += "\"distF\":" + String(aux3, 2) + ",";
+  json += "\"distD\":" + String(DIR, 2) + ",";
+  json += "\"distE\":" + String(ESQ, 2) + ",";
+  json += "\"distF\":" + String(FREN, 2) + ",";
   json += "\"passos\":" + String(numPassos) + ",";
   json += "\"temperatura\":" + String(temperatura, 2) + ",";
   json += "\"modo\":" + String(mode) + ",";
@@ -213,8 +214,8 @@ void setup() {
   
   pinMode(motore,OUTPUT);
   pinMode(motord,OUTPUT);
-  pinMode(botaoe,INPUT_PULLUP);
-  pinMode(botaoi,INPUT_PULLUP);
+  pinMode(botaoExterior,INPUT_PULLUP);
+  pinMode(botaoInterior,INPUT_PULLUP);
 
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid, password);
@@ -245,40 +246,54 @@ void loop() {
       return;
     }
     Serial.println(s);
-    String distd=s.substring(10,15);
-    aux1=distd.toDouble();
-    String diste=s.substring(16,21);
-    aux2=diste.toDouble();
-    String distf = s.substring(22,27);
-    aux3= distf.toDouble();
-    String passos= s.substring(28,)
-    if(aux1<=distanciaSeguranca){
-      if(mode==interior){proximoPulsoD=(aux1)*450+50;}
-      else proximoPulsoD=(aux1)/2.00f*450+50;
-      if(aux3<=distanciaSeguranca){
-        if(mode==interior)proximoPulsoD=(proximoPulsoD*(aux3)>50)?proximoPulsoD*(aux3):50;
-        else proximoPulsoD=(proximoPulsoD*(aux3)/2.00f>50)?proximoPulsoD*(aux3)/2.00f:50;
+    int doispts = s.indexOf(":",0);
+    int priVirgula=s.indexOf(",",doispts);
+    String distd=s.substring(doispts+1,priVirgula);
+    DIR=distd.toDouble();
+
+    int secVirgula=s.indexOf(",",priVirgula+1);
+    String diste=s.substring(priVirgula+1,secVirgula);
+    ESQ=diste.toDouble();
+
+    int terVirgula = s.indexOf(",",secVirgula+1);
+    String distf = s.substring(secVirgula+1,terVirgula);
+    FREN= distf.toDouble();
+
+    int quarVirgula = s.indexOf(",",terVirgula+1);
+    String passos= s.substring(terVirgula+1,quarVirgula);
+    numPassos = passos.toInt();
+
+    int quinVirgula = s.indexOf(",", quarVirgula+1);
+    String t = s.substring(quarVirgula+1,quinVirgula);
+    temperatura = t.toDouble();
+
+    if(DIR<=distanciaSeguranca){
+      if(mode==interior){proximoPulsoD=(DIR)*450+50;}
+      else proximoPulsoD=(DIR)/2.00f*450+50;
+      if(FREN<=distanciaSeguranca){
+        if(mode==interior)proximoPulsoD=(proximoPulsoD*(FREN)>50)?proximoPulsoD*(FREN):50;
+        else proximoPulsoD=(proximoPulsoD*(FREN)/2.00f>50)?proximoPulsoD*(FREN)/2.00f:50;
       }
     } 
-    if(aux2<=distanciaSeguranca){
-      if(mode==interior)proximoPulsoE=(aux2)*450+50;
-      else proximoPulsoE=(aux2)/2.00f*450+50;
-      if(aux3<=distanciaSeguranca){
-        if(mode==interior)proximoPulsoE=(proximoPulsoE*(aux3)>50)?proximoPulsoE*(aux3):50;
-        else proximoPulsoE=(proximoPulsoE*(aux3)/2.00f>50)?proximoPulsoE*(aux3)/2.00f:50;
+    if(ESQ<=distanciaSeguranca){
+      if(mode==interior)proximoPulsoE=(ESQ)*450+50;
+      else proximoPulsoE=(ESQ)/2.00f*450+50;
+      if(FREN<=distanciaSeguranca){
+        if(mode==interior)proximoPulsoE=(proximoPulsoE*(FREN)>50)?proximoPulsoE*(FREN):50;
+        else proximoPulsoE=(proximoPulsoE*(FREN)/2.00f>50)?proximoPulsoE*(FREN)/2.00f:50;
       }
     }
-    if (aux1>distanciaSeguranca&&aux3<=distanciaSeguranca){
-      if(mode==interior)proximoPulsoD=(aux3)*450+50;
-      else proximoPulsoD=(aux3)/2.00f*450+50;
+    if (DIR>distanciaSeguranca&&FREN<=distanciaSeguranca){
+      if(mode==interior)proximoPulsoD=(FREN)*450+50;
+      else proximoPulsoD=(FREN)/2.00f*450+50;
     }
-    if (aux2>distanciaSeguranca&&aux3<=distanciaSeguranca){
-      if(mode==interior)proximoPulsoE=(aux3)*450+50;
-      else proximoPulsoE=(aux3)/2.00f*450+50;
+    if (ESQ>distanciaSeguranca&&FREN<=distanciaSeguranca){
+      if(mode==interior)proximoPulsoE=(FREN)*450+50;
+      else proximoPulsoE=(FREN)/2.00f*450+50;
     }
   }
   static unsigned long tD = 0;
-    if (aux1 <= distanciaSeguranca||aux3<=distanciaSeguranca) {
+    if (DIR <= distanciaSeguranca||FREN<=distanciaSeguranca) {
       if (millis() - tD >= proximoPulsoD) {
         estadoMotorD = !estadoMotorD;
         digitalWrite(motord, estadoMotorD);
@@ -290,7 +305,7 @@ void loop() {
     }
 
   static unsigned long tE = 0;
-    if (aux2 <= distanciaSeguranca||aux3<=distanciaSeguranca) {
+    if (ESQ <= distanciaSeguranca||FREN<=distanciaSeguranca) {
       if (millis() - tE >= proximoPulsoE) {
         estadoMotorE = !estadoMotorE;
         digitalWrite(motore, estadoMotorE);
@@ -300,11 +315,11 @@ void loop() {
       digitalWrite(motore, LOW); 
       estadoMotorE = false;
     }
-    if(digitalRead(botaoi)==LOW){
+    if(digitalRead(botaoInterior)==LOW){
       mode=interior;
       distanciaSeguranca=1.00f;
     }
-    if(digitalRead(botaoe)==LOW){
+    if(digitalRead(botaoExterior)==LOW){
       mode=exterior;
       distanciaSeguranca=2.00f;
     }
