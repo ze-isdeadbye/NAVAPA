@@ -204,7 +204,8 @@ void handleDists(){
   json += "\"passos\":" + String(numPassos) + ",";
   json += "\"temperatura\":" + String(temperatura, 2) + ",";
   json += "\"modo\":" + String(mode) + ",";
-  json += "\"queda\":" + String(quedaDetectada ? "true" : "false");
+  json += "\"queda\":";  
+  json += quedaDetectada ? "true" : "false";
   json += "}";
   server.send(200, "application/json", json);
 }
@@ -232,8 +233,9 @@ void loop() {
   server.handleClient();
   if (Serial1.available()>0) {  
     String s = Serial1.readStringUntil('\n');
-
-    if (s.equalsIgnoreCase("QUEDA")) {
+    String detQ =s;
+    detQ.trim();
+    if (detQ=="QUEDA") {
       quedaDetectada = true;
 
       digitalWrite(motord, LOW);

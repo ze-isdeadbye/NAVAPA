@@ -6,6 +6,28 @@
 #include <Adafruit_ST7735.h>
 #include <LiquidCrystal.h>
 
+#define botao 14
+
+enum apresentacao{
+  distanciaE,
+  distanciaF,
+  distanciaD,
+  modoINTEXT,
+  temperatura,
+  numeroPassos
+}aplcd;
+
+byte aviso[] = { 
+  B00100, 
+  B01010, 
+  B10101, 
+  B10101, 
+  B10101, 
+  B10001, 
+  B10101, 
+  B11111 
+}; 
+
 #define cs   4 
 #define dc   3 
 #define rst  2
@@ -38,12 +60,13 @@ int passos = 0;
 
 void setup() {
   Serial.begin(9600);
+  pinMode(botao,INPUT_PULLUP);
   delay(100);
 
   lcd.begin(16, 2);
+  lcd.createChar(0, aviso);
 
   tft.initR(INITR_GREENTAB);
-  tft.setSPISpeed(27000000);
   tft.setRotation(1);
   tft.fillScreen(ST77XX_BLACK);
   tft.setTextColor(0xFFFFFF);
@@ -64,11 +87,50 @@ void setup() {
   Serial.print("IP local: ");
   Serial.println(WiFi.localIP());
 
+  aplcd=distanciaE;
 }
 
 void loop() {
+  if(digitalRead(botao)==HIGH){
+    switch (aplcd){
+      case distanciaE:aplcd=distanciaF;break;
+      case distanciaF:aplcd=distanciaD;break;
+      case distanciaD:aplcd=modoINTEXT;break;
+      case modoINTEXT:aplcd=temperatura;break;
+      case temperatura:aplcd=numeroPassos;break;
+      case numeroPassos:aplcd=distanciaE;break;
+    }
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("Info mostrada:");
+    lcd.setCursor(0,1);
+    switch (aplcd){
+      case distanciaE:
+      lcd.print("Distancia a ESQ");
+      break;
+      case distanciaF:
+      lcd.print("Distancia a FRE");
+      break;
+      case distanciaD:
+      lcd.print("Distancia a DIR");
+      break;
+      case modoINTEXT:
+      lcd.print("Modo de atuacao");
+      break;
+      case temperatura:
+      lcd.print("Temperatura");
+      break;
+      case numeroPassos:
+      lcd.print("No. passos dados");
+      break;
+    }
+    delay(1000);
+    lcd.clear();
+  }
   if (WiFi.status() == WL_CONNECTED) {
     if(millis()-ultimamed>=200){
+    lcd.setCursor(0, 0);
+
     HTTPClient http;
     http.begin(serverURL);
     int httpCode = http.GET();
@@ -110,19 +172,54 @@ void loop() {
       Pontos = leituras.indexOf("queda\":");
       Virgula = leituras.indexOf("}", Pontos);
       String q = leituras.substring(Pontos + 7, Virgula);
-
+      q.trim();
       if (q.equalsIgnoreCase("true")){
         Serial.printf("QUEDA");
+        tft.fillScreen(ST77XX_BLACK);
+        tft.drawTriangle(50,40,110,40,80,88,0x07FF);
+        tft.fillRect(78, 60, 4, 20, 0x07FF);
+        tft.fillRect(78, 50, 4, 6, 0x07FF);
+        lcd.print("O USUARIO CAIU!");
+        lcd.setCursor(0,1);
+        for(int i=0; i<16;i++)lcd.write(byte(0));
       }else{
-        const char* modoStr = (modo == 0 ? "Interior" : "Exterior");
-        Serial.printf("Direita: %.2fm   Esquerda: %.2fm   Frente: %.2fm   Modo: %s\n",distD, distE, distF,modoStr);
-        lcd.setCursor(0, 0);
-        lcd.print("Dists: (E;F;D)m");
-        lcd.setCursor(0, 1);
-        String saux2 = String("(")+String(distE)+String(",")+String(distF)+String(",")+String(distD)+String(")");
-        char s[18];
-        saux2.toCharArray(s,17);
-        lcd.print(s); 
+        switch (aplcd){
+          case distanciaE:
+          lcd.print("Distancia a ESQ:");
+          lcd.setCursor(0, 1);
+          lcd.print(distE,2);
+          lcd.print(" m (Linha R)");
+          break;
+          case distanciaF:
+          lcd.print("Distancia a FRE:");
+          lcd.setCursor(0, 1);
+          lcd.print(distF,2);
+          lcd.print(" m (Linha G)");
+          break;
+          case distanciaD:
+          lcd.print("Distancia a DIR:");
+          lcd.setCursor(0, 1);
+          lcd.print(distD,2);
+          lcd.print(" m (Linha B)");
+          break;
+          case modoINTEXT:
+          lcd.print("Modo de atuacao:");
+          lcd.setCursor(0, 1);
+          lcd.print(modo==0?"Esta no Interior":"Esta no Exterior");
+          break;
+          case temperatura:
+          lcd.print("Temperatura: ");
+          lcd.setCursor(0, 1);
+          lcd.print(temp,2);
+          lcd.print(temp<=15.00f?" C, Frio":(temp>=25.00f?" C, Calor":" C"));
+          if (temp<=15.00f||temp>=25.00f)lcd.write(byte(0));
+          break;
+          case numeroPassos:
+          lcd.print("No. passos dados:");
+          lcd.setCursor(0, 1);
+          lcd.print(passos);
+          break;
+        }
       }
     }
     else {
