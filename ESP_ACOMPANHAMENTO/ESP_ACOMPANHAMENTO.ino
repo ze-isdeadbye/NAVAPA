@@ -57,6 +57,10 @@ double distD = 5.0, distE = 5.0, distF = 5.0;
 int modo = 0;
 double temp = 0.0;
 int passos = 0;
+int ultPE[2]={160,0};
+int ultPF[2]={160,0};
+int ultPD[2]={160,0};
+int pontos=0;
 
 void setup() {
   Serial.begin(9600);
@@ -74,6 +78,7 @@ void setup() {
   tft.setCursor(10, 10);
 
   Serial.printf("A ligar ao SSID “%s” …\n", ssid);
+  tft.setRotation(3);
   tft.println("A ligar ao AP!");
   WiFi.begin(ssid, password);
   
@@ -84,6 +89,9 @@ void setup() {
   }
   Serial.println("\nWi-Fi ligado!");
   tft.println("\nLigado ao AP!"); 
+  tft.setRotation(1);
+  delay(1000);
+  tft.fillScreen(ST77XX_BLACK);
   Serial.print("IP local: ");
   Serial.println(WiFi.localIP());
 
@@ -176,13 +184,46 @@ void loop() {
       if (q.equalsIgnoreCase("true")){
         Serial.printf("QUEDA");
         tft.fillScreen(ST77XX_BLACK);
+        tft.setTextSize(1);
+        tft.setTextColor(ST77XX_WHITE);
+        tft.setRotation(3);
+        tft.setCursor(10, 5);
+        tft.println("Foi detetada uma queda"); tft.println(" do usuario do NAVAPA, que");tft.print(" podera precisar de ajuda!");
+        tft.setRotation(1);
         tft.drawTriangle(50,40,110,40,80,88,0x07FF);
         tft.fillRect(78, 60, 4, 20, 0x07FF);
         tft.fillRect(78, 50, 4, 6, 0x07FF);
+        lcd.clear();
         lcd.print("O USUARIO CAIU!");
         lcd.setCursor(0,1);
         for(int i=0; i<16;i++)lcd.write(byte(0));
+        while(1){}
       }else{
+        int alturaE = (distE/5.00f)*128;
+        int alturaF = (distF/5.00f)*128;
+        int alturaD = (distD/5.00f)*128;
+
+        tft.drawLine(ultPE[0], ultPE[1], ultPE[0]+2, alturaE,ST77XX_BLUE ); //está a desnhar vermelho
+        ultPE[0]-=2;
+        ultPE[1]=alturaE;
+
+        tft.drawLine(ultPF[0], ultPF[1], ultPF[0]+2, alturaF,ST77XX_GREEN );// está a desenhar verde
+        ultPF[0]-=2;
+        ultPF[1]=alturaF;
+
+        tft.drawLine(ultPD[0], ultPD[1], ultPD[0]+2, alturaD,ST77XX_RED );//está a desenhar azul 
+        ultPD[0]-=2;
+        ultPD[1]=alturaD;
+
+        pontos++;
+
+        if(pontos==80){
+          tft.fillScreen(ST77XX_BLACK);
+          ultPE[0]=160;
+          ultPF[0]=160;
+          ultPD[0]=160;
+          pontos=0;
+        }
         switch (aplcd){
           case distanciaE:
           lcd.print("Distancia a ESQ:");
