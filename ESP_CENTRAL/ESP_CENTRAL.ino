@@ -1,7 +1,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
-#define motord 3
-#define motore 5
+#define motord 5
+#define motore 3
 #define botaoInterior 18
 #define botaoExterior 19
 
@@ -210,7 +210,6 @@ void handleDists(){
   server.send(200, "application/json", json);
 }
 void setup() {
-  Serial.begin(9600);
   Serial1.begin(9600,SERIAL_8N1,21,20);
   
   pinMode(motore,OUTPUT);
@@ -220,9 +219,6 @@ void setup() {
 
   WiFi.mode(WIFI_AP);
   WiFi.softAP(ssid, password);
-  Serial.println("AP ativo. SSID: " + String(ssid));
-  Serial.print("IP do AP: ");
-  Serial.println(WiFi.softAPIP());
   server.on("/", handleRoot);
   server.on("/distances", handleDists);
   server.begin();
@@ -243,11 +239,8 @@ void loop() {
       estadoMotorD = false;
       estadoMotorE = false;
 
-      Serial.println("** QUEDA DETETADA! **");
-
       return;
     }
-    Serial.println(s);
     int doispts = s.indexOf(":",0);
     int priVirgula=s.indexOf(",",doispts);
     String distd=s.substring(doispts+1,priVirgula);
