@@ -200,15 +200,16 @@ void loop() {
         tft.setCursor(0, 0);
         tft.print("Distancias: ");
         tft.setRotation(1);
-        tft.drawLine(ultPE[0], ultPE[1], ultPE[0]+2, alturaE,ST77XX_BLUE ); //está a desnhar vermelho
+
+        tft.drawLine(ultPE[0], ultPE[1], ultPE[0]-2, alturaE,ST77XX_BLUE ); //está a desnhar vermelho
         ultPE[0]-=2;
         ultPE[1]=alturaE;
 
-        tft.drawLine(ultPF[0], ultPF[1], ultPF[0]+2, alturaF,ST77XX_GREEN );// está a desenhar verde
+        tft.drawLine(ultPF[0], ultPF[1], ultPF[0]-2, alturaF,ST77XX_GREEN );// está a desenhar verde
         ultPF[0]-=2;
         ultPF[1]=alturaF;
 
-        tft.drawLine(ultPD[0], ultPD[1], ultPD[0]+2, alturaD,ST77XX_RED );//está a desenhar azul 
+        tft.drawLine(ultPD[0], ultPD[1], ultPD[0]-2, alturaD,ST77XX_RED );//está a desenhar azul 
         ultPD[0]-=2;
         ultPD[1]=alturaD;
 
