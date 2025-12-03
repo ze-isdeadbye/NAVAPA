@@ -63,7 +63,6 @@ int ultPD[2]={160,0};
 int pontos=0;
 
 void setup() {
-  Serial.begin(9600);
   pinMode(botao,INPUT_PULLUP);
   delay(100);
 
@@ -77,23 +76,18 @@ void setup() {
   tft.setTextSize(1);
   tft.setCursor(10, 10);
 
-  Serial.printf("A ligar ao SSID “%s” …\n", ssid);
   tft.setRotation(3);
   tft.println("A ligar ao AP!");
   WiFi.begin(ssid, password);
   
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    Serial.print(".");
     tft.print(".");
   }
-  Serial.println("\nWi-Fi ligado!");
   tft.println("\nLigado ao AP!"); 
   tft.setRotation(1);
   delay(1000);
   tft.fillScreen(ST77XX_BLACK);
-  Serial.print("IP local: ");
-  Serial.println(WiFi.localIP());
 
   aplcd=distanciaE;
 }
@@ -182,7 +176,6 @@ void loop() {
       String q = leituras.substring(Pontos + 7, Virgula);
       q.trim();
       if (q.equalsIgnoreCase("true")){
-        Serial.printf("QUEDA");
         tft.fillScreen(ST77XX_BLACK);
         tft.setTextSize(1);
         tft.setTextColor(ST77XX_WHITE);
@@ -197,12 +190,16 @@ void loop() {
         lcd.print("O USUARIO CAIU!");
         lcd.setCursor(0,1);
         for(int i=0; i<16;i++)lcd.write(byte(0));
-        while(1){}
+        while(!digitalRead(botao)==HIGH){}
+        tft.fillScreen(ST77XX_BLACK);
       }else{
         int alturaE = (distE/5.00f)*128;
         int alturaF = (distF/5.00f)*128;
         int alturaD = (distD/5.00f)*128;
-
+        tft.setRotation(3);
+        tft.setCursor(0, 0);
+        tft.print("Distancias: ");
+        tft.setRotation(1);
         tft.drawLine(ultPE[0], ultPE[1], ultPE[0]+2, alturaE,ST77XX_BLUE ); //está a desnhar vermelho
         ultPE[0]-=2;
         ultPE[1]=alturaE;
@@ -224,6 +221,7 @@ void loop() {
           ultPD[0]=160;
           pontos=0;
         }
+        lcd.clear();
         switch (aplcd){
           case distanciaE:
           lcd.print("Distancia a ESQ:");
@@ -264,18 +262,32 @@ void loop() {
       }
     }
     else {
-      Serial.printf("Erro HTTP: %d\n", httpCode);
+      tft.fillScreen(ST77XX_BLACK);
+      tft.setRotation(3);
+      tft.setCursor(0, 0);
+      tft.printf("Erro HTTP: %d\n", httpCode);
+      tft.println("A tentar reconectar...");
+      tft.setRotation(1);
     }
     http.end();
     ultimamed=millis();
   }
   }else {
-    Serial.println("Wi-Fi perdido, a tentar reconectar …");
-    /*WiFi.begin(ssid, password);
+    tft.fillScreen(ST77XX_BLACK);
+    tft.setRotation(3);
+    tft.setCursor(0, 0);
+    tft.println("Conexao perdida!");
+    tft.print("A tentar reconectar...");
+    WiFi.reconnect();
     while (WiFi.status() != WL_CONNECTED) {
       delay(500);
-      Serial.print(".");
-    }*/
-    WiFi.reconnect(); 
+      tft.print(".");
+    }
+    tft.fillScreen(ST77XX_BLACK);
+    tft.setCursor(0, 0);
+    tft.print("Reconectado ao AP!");
+    delay(1000);
+    tft.fillScreen(ST77XX_BLACK);
+    tft.setRotation(1); 
   }
 }

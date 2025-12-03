@@ -11,13 +11,13 @@ const int BMI160_I2C_ADDRESS = 0x68;
 #define INTERRUPT_PIN 0 
 unsigned long int ultimamed;
 
-#define RESET_BUTTON_PIN 10   
+#define botao_reset 10   
 
 void stepInterrupt() {
   
 }
 
-const long veloSom=344.0; //para temperatura de 20 graus 
+double veloSom=344.0; //para temperatura de 20 graus 
 double dist=0.0;
 long unsigned int ultMed;
 
@@ -33,17 +33,21 @@ double medeDist(int trig, int echo) {
   
   duration=pulseIn(echo,HIGH,30000);// timeout 30 ms (~5m)
   if (duration == 0) return 5.0; // sem eco, é mais de 5m então assume 5m
+  
+  int16_t rawTemp=BMI160.readTemperature();
+  float tempC = 23.0 + ((float)rawTemp / 512.0);
 
+  veloSom = 331.3 + (0.606 * tempC);
   distance = ((double)duration*veloSom)/(2000000.0f); 
   return distance;
 }
 
 void setup() {
   Serial1.begin(9600,SERIAL_8N1,21,1); 
-  //Serial.begin(9600);
+
   while (!Serial1) { } 
 
-  pinMode(RESET_BUTTON_PIN, INPUT_PULLDOWN);
+  pinMode(botao_reset, INPUT_PULLDOWN);
   pinMode(trigd, OUTPUT); 
   pinMode(echod, INPUT);
   pinMode(trige, OUTPUT); 
@@ -75,13 +79,11 @@ void setup() {
 
 void loop() {
   if(BMI160.getIntFreefallStatus()){
-    //Serial.print("foi detetada uma queda!!!!!!!!!!");
     Serial1.println("QUEDA");
-    while(1){};
+    while(!digitalRead(botao_reset) == HIGH){};
   }
-  if(digitalRead(RESET_BUTTON_PIN) == HIGH) {
+  if(digitalRead(botao_reset) == HIGH) {
     BMI160.resetStepCount();
-    //Serial.println("Counter reset!");
   }
   if(millis()-ultMed>=200){
   uint16_t currentSteps = BMI160.getStepCount();

@@ -240,6 +240,8 @@ void loop() {
       estadoMotorE = false;
 
       return;
+    }else{
+      quedaDetectada = false;
     }
     int doispts = s.indexOf(":",0);
     int priVirgula=s.indexOf(",",doispts);
